@@ -10,11 +10,17 @@
     "name": "Misha Skyda",
     "email": "mihail.skida@gmail.com"
   },
-  "dependencies": {},
+  "dependencies": {
+    "vue": "^2.6.8"
+  },
   "devDependencies": {
     "webpack": "^4.29.6",
     "webpack-cli": "^3.2.3",
-    "vue-loader": "^15.7.0"
+    "vue-loader": "^15.7.0",
+    "vue-template-compiler": "^2.6.8",
+    "css-loader": "^2.1.0",
+    "sass-loader": "^7.1.0",
+    "node-sass": "^4.11.0"
   },
   "scripts": {
     "dev": "webpack -d -w",
