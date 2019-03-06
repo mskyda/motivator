@@ -1,0 +1,23 @@
+{
+  "name": "motivator_app",
+  "version": "0.0.1",
+  "description": "motivator_app",
+  "keywords": [
+    "motivator",
+    "fitbit"
+  ],
+  "author": {
+    "name": "Misha Skyda",
+    "email": "mihail.skida@gmail.com"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.2.3",
+    "vue-loader": "^15.7.0"
+  },
+  "scripts": {
+    "dev": "webpack -d -w",
+    "build": "webpack -p"
+  }
+}
