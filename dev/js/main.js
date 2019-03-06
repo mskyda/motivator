@@ -4,6 +4,8 @@ document.querySelector('#logout-button').addEventListener('click', (e) => {
 
 	localStorage && localStorage.removeItem('motivatorApp');
 
+	// todo: revoke token on logout
+
 	init();
 
 });
