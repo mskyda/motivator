@@ -58,7 +58,7 @@
 				const data = {
 					response_type: 'token',
 					client_id: '22DJKC',
-					redirect_uri: 'https%3A%2F%2Fmskyda.github.io',
+					redirect_uri: encodeURIComponent(window.location.origin),
 					scope: 'activity nutrition heartrate location nutrition profile settings sleep social weight',
 					expires_in: '31536000'
 				};

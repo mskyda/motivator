@@ -34,7 +34,8 @@ const config = {
 	},
 	plugins: [
 		new VueLoaderPlugin
-	]
+	],
+	devServer: { port: 9000 }
 };
 
 module.exports = config;

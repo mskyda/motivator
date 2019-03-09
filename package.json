@@ -22,10 +22,11 @@
     "typescript": "^3.3.3333",
     "css-loader": "^2.1.0",
     "sass-loader": "^7.1.0",
-    "node-sass": "^4.11.0"
+    "node-sass": "^4.11.0",
+    "webpack-dev-server": "^3.2.1"
   },
   "scripts": {
-    "dev": "webpack -d -w",
+    "dev": "webpack-dev-server",
     "build": "webpack -p"
   }
 }
