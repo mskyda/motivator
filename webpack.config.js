@@ -11,7 +11,6 @@ const config = {
 		path    : DIST_DIR,
 		filename: 'bundle.js'
 	},
-	resolve: { extensions: [ '.ts', '.vue' ] },
 	module: {
 		rules: [
 			{
@@ -21,10 +20,10 @@ const config = {
 			},
 			{
 				test: /\.vue$/,
-				use: [ 'vue-loader' ]
+				loader: 'vue-loader'
 			},
 			{
-				test: /\.scss$/,
+				test: /\.s?css$/,
 				use: [
 					'vue-style-loader',
 					'css-loader',
