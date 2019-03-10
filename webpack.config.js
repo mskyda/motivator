@@ -9,6 +9,7 @@ const config = {
 	entry : `${JS_DEV_DIR}/main.ts`,
 	output: {
 		path    : DIST_DIR,
+		publicPath: '/dist/',
 		filename: 'bundle.js'
 	},
 	module: {
