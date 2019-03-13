@@ -85,9 +85,9 @@ export default Vue.extend({
 
 				date = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`;
 
-				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/${date}/1m.json`, requestOpts).then(res => res.json()).then(res => {
+				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/${date}/1m.json`, requestOpts).then(res => res.json()).then((res : { weight: [ { weight : number } ] }) => {
 
-					let weeks = [];
+					const weeks : number[] = [];
 
 					res.weight.reverse().forEach((obj, index) => {
 
@@ -97,7 +97,7 @@ export default Vue.extend({
 
 					});
 
-					weeks = weeks.map((week, index) => {
+					const weekStatuses = weeks.map((week, index) => {
 
 						let divider = 7;
 
@@ -107,9 +107,9 @@ export default Vue.extend({
 
 					});
 
-					html += `<h3>Your average weight:<br><br> ${weeks.join('<br>')}<h3><h3>Great job!</h3>`;
+					html += `<h3>Your average weight:<br><br> ${weekStatuses.join('<br>')}<h3><h3>Great job!</h3>`;
 
-					this.$refs.infoBox.innerHTML = html;
+					(this.$refs.infoBox as HTMLElement).innerHTML = html; // todo: remove this dirty hack
 
 				});
 
