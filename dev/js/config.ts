@@ -1,5 +1,5 @@
 export default {
-	pathes: {
+	paths: {
 		revokeAccess: 'https://api.fitbit.com/oauth2/revoke',
 		authorize: 'https://www.fitbit.com/oauth2/authorize'
 	},

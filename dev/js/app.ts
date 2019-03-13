@@ -1,11 +1,41 @@
-import config from './config';
+import Vue from 'vue'
 
-export default {
+import { checkHash } from './helpers.ts';
+import config from './config.ts';
+
+export default Vue.extend({
 
 	data() {
 
+		console.log();
+
+		const sessionFromLocalStorage = localStorage.motivatorApp && JSON.parse(localStorage.motivatorApp);
+		const sessionFromHash = window.location.hash && checkHash(window.location.hash.substr(1));
+
 		return {
-			sessionData: localStorage.motivatorApp && JSON.parse(localStorage.motivatorApp) || this.checkHash(window.location.hash)
+			dataSession: sessionFromLocalStorage || sessionFromHash
+		}
+
+	},
+
+	computed: {
+
+		loginUrl(){
+
+			const data : { [key: string]: string } = {
+				response_type: 'token',
+				client_id: config.clientId,
+				redirect_uri: encodeURIComponent(window.location.origin),
+				scope: 'activity nutrition heartrate location nutrition profile settings sleep social weight',
+				expires_in: (60 * 60 * 24 * config.expirationDays).toString()
+			};
+
+			let loginUrl = `${config.paths.authorize}?`;
+
+			for(const key in data){ loginUrl += `${key}=${data[key]}&`; }
+
+			return loginUrl.substr(0, loginUrl.length - 1);
+
 		}
 
 	},
@@ -16,13 +46,13 @@ export default {
 
 			e.preventDefault();
 
-			fetch(config.pathes.revokeAccess, {
+			fetch(config.paths.revokeAccess, {
 				method: 'POST',
 				headers: {
 					'Authorization': `Basic ${config.basicAuthId}`,
 					'Content-Type': 'application/x-www-form-urlencoded'
 				},
-				body: `token=${this.sessionData.access_token}`,
+				body: `token=${this.dataSession.access_token}`,
 			}).then(this.clearAppState);
 
 		},
@@ -31,49 +61,13 @@ export default {
 
 			localStorage.removeItem('motivatorApp');
 
-			this.sessionData = false;
-
-		},
-
-		generateLoginUrl(){
-
-			const data = {
-				response_type: 'token',
-				client_id: config.clientId,
-				redirect_uri: encodeURIComponent(window.location.origin),
-				scope: 'activity nutrition heartrate location nutrition profile settings sleep social weight',
-				expires_in: (60 * 60 * 24 * config.expirationDays).toString()
-			};
-
-			let loginUrl = `${config.pathes.authorize}?`;
-
-			for(const key in data){ loginUrl += `${key}=${data[key]}&`; }
-
-			return loginUrl.substr(0, loginUrl.length - 1);
-
-		},
-
-		checkHash(hashData){
-
-			if(!hashData){ return; }
-
-			const sessionData = {};
-
-			hashData = hashData.substr(1).split('&');
-
-			hashData.forEach(chunk => { sessionData[chunk.split('=')[0]] = chunk.split('=')[1]; });
-
-			localStorage.setItem('motivatorApp', JSON.stringify(sessionData));
-
-			history.pushState('', document.title, `${window.location.pathname}${window.location.search}`);
-
-			return sessionData;
+			this.dataSession = false;
 
 		},
 
 		displayData(){
 
-			const requestOpts = { headers: {'Authorization': `Bearer ${this.sessionData.access_token}`} };
+			const requestOpts = { headers: {'Authorization': `Bearer ${this.dataSession.access_token}`} };
 
 			let html = '';
 
@@ -91,7 +85,7 @@ export default {
 
 				date = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`;
 
-				fetch(`https://api.fitbit.com/1/user/${this.sessionData.user_id}/body/log/weight/date/${date}/1m.json`, requestOpts).then(res => res.json()).then(res => {
+				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/${date}/1m.json`, requestOpts).then(res => res.json()).then(res => {
 
 					let weeks = [];
 
@@ -124,4 +118,4 @@ export default {
 		}
 
 	}
-};
+});

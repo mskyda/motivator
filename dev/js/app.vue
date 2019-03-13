@@ -4,13 +4,13 @@
 			<h1>Fitbit Motivator</h1>
 		</header>
 		<main>
-			<section id="data-view" v-if="sessionData">
+			<section id="data-view" v-if="dataSession">
 				<div id="info-box" v-html="displayData()" ref="infoBox"></div>
 				<a id="logout-button" v-on:click="onLogout" href="#">LOG OUT</a>
 			</section>
 			<section id="login-view" v-else>
 				<h2>Please login to Fitbit to use Motivator</h2>
-				<a id="login-button" v-bind:href="generateLoginUrl()">LOG IN</a>
+				<a id="login-button" v-bind:href="loginUrl">LOG IN</a>
 			</section>
 		</main>
 	</section>
