@@ -5,8 +5,9 @@
 		</header>
 		<main>
 			<section id="data-view" v-if="dataSession">
-				<div id="info-box" v-html="displayData()" ref="infoBox"></div>
 				<a id="logout-button" v-on:click="onLogout" href="#">LOG OUT</a>
+				<div id="info-box" v-html="displayData()" ref="infoBox"></div>
+				<svg id="weight"></svg>
 			</section>
 			<section id="login-view" v-else>
 				<h2>Please login to Fitbit to use Motivator</h2>
