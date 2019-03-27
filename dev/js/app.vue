@@ -33,20 +33,25 @@
 	import Vue from 'vue';
 	import * as d3 from 'd3';
 
-	import { checkHash } from './helpers.ts';
+	import { checkHash, Storage } from './helpers.ts';
 	import config from './config.ts';
+
+	const storage = new Storage('motivatorApp');
 
 	export default Vue.extend({
 
 		data() {
 
-			const sessionFromLocalStorage = localStorage.motivatorApp && JSON.parse(localStorage.motivatorApp);
-			const sessionFromHash = window.location.hash && checkHash(window.location.hash.substr(1));
+			let session = storage.get('session');
+
+			if(!session){ session = checkHash(); }
+
+			if(session){ storage.set({ session }); }
 
 			return {
 				dataUser: null,
 				dataCalories: null,
-				dataSession: sessionFromLocalStorage || sessionFromHash
+				dataSession: session
 			}
 
 		},
@@ -98,7 +103,7 @@
 
 			clearAppState() {
 
-				localStorage.removeItem('motivatorApp');
+				storage.remove();
 
 				this.dataSession = false;
 
