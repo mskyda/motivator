@@ -58,7 +58,7 @@ export class Storage {
 		if(!this.isSupported){ return; }
 
 		const storedData = this.get() || {};
-		const mergedData = (<any>Object).assign(storedData, json);
+		const mergedData = (Object as any).assign(storedData, json);
 
 		this.storage.setItem(this.identifier, JSON.stringify(mergedData));
 
@@ -72,11 +72,11 @@ export class Storage {
 
 		if(key){
 
-			return storedData && storedData[key] || false;
+			return storedData && storedData[key] || null;
 
 		} else {
 
-			return storedData || false;
+			return storedData || null;
 
 		}
 

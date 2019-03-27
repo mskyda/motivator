@@ -8,17 +8,11 @@
 		<main>
 			<section v-if="dataSession">
 				<h2 v-if="dataUser">Hello, {{dataUser.displayName}}!</h2>
-				<div class="wrapper">
-					<div class="weight">
-						<h3>Your weight changes:</h3>
-						<svg id="weight-graph" height="0"></svg>
-					</div>
-					<div class="calories">
-						<h3>Consumed calories today:</h3>
-						<h3 class="calories-title">{{ dataCalories }}</h3>
-					</div>
+				<div v-if="dataWeight" class="wrapper">
+					<h3>Your weight changes:</h3>
+					<svg ref="dataWeight" id="weight-graph" height="0"></svg>
 				</div>
-				<div class="wrapper">
+				<div v-if="dataCalories" class="wrapper">
 					<h3>Your burned calories:</h3>
 					<svg id="calories-graph" height="0"></svg>
 				</div>
@@ -49,9 +43,10 @@
 			if(session){ storage.set({ session }); }
 
 			return {
-				dataUser: null,
-				dataCalories: null,
-				dataSession: session
+				dataSession: session,
+				dataUser: storage.get('user'),
+				dataWeight: storage.get('weight'),
+				dataCalories: storage.get('calories'),
 			}
 
 		},
@@ -111,6 +106,8 @@
 
 			fetchData(){
 
+				// todo: !!check all responses for interesting data!!
+
 				const requestOpts = { headers: {'Authorization': `Bearer ${this.dataSession.access_token}`} };
 
 				let date : Date | string = new Date();
@@ -119,69 +116,77 @@
 
 				this.fetchUserData(requestOpts);
 
-				this.fetchConsumedCalories(requestOpts, date);
-
 				this.fetchWeightData(requestOpts, date);
 
 				this.fetchCaloriesData(requestOpts, date);
-
-				// todo: steps
 
 			},
 
 			fetchUserData(requestOpts : { headers: { [key: string]: string } }){
 
-				fetch('https://api.fitbit.com/1/user/-/profile.json', requestOpts)
-					.then(res => res.json())
-					.then(res => {
+				if(!this.dataUser) {
 
-						if(res.errors){ this.clearAppState(); }
+					fetch('https://api.fitbit.com/1/user/-/profile.json', requestOpts)
+						.then(res => res.json())
+						.then(res => {
 
-						this.dataUser = res.user;
+							if(res.errors){ this.clearAppState(); }
 
-					});
+							this.dataUser = res.user;
 
-			},
+							storage.set({ user: this.dataUser });
 
-			fetchConsumedCalories(requestOpts: { headers: { [key: string]: string } }, date : string){
+						});
 
-				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/foods/log/date/${date}.json`, requestOpts)
-					.then(res => res.json())
-					.then((res) => {
-
-						// todo: check response for interesting data
-
-						this.dataCalories = res.summary.calories;
-
-					});
+				}
 
 			},
 
 			fetchWeightData(requestOpts: { headers: { [key: string]: string } }, date : string){
 
-				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/${date}/1m.json`, requestOpts)
-					.then(res => res.json())
-					.then((res : { weight: [ { weight : number, date: string } ] }) => {
+				if(!this.dataWeight) {
 
-						// todo: check response for interesting data
+					fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/${date}/1m.json`, requestOpts)
+						.then(res => res.json())
+						.then((res) => {
 
-						this.renderD3(res.weight.map(data => ({ value: data.weight, date: new Date(data.date) })), '#weight-graph', '#0095b2');
+							this.dataWeight = res.weight;
 
-					});
+							storage.set({ weight: this.dataWeight});
+
+							this.renderD3((this.dataWeight as [{ weight : number, date: string }]).map(data => ({ value: data.weight, date: new Date(data.date) })), '#weight-graph', '#0095b2');
+
+						});
+
+				} else {
+
+					setTimeout(() => this.renderD3((this.dataWeight as [{ weight : number, date: string }]).map(data => ({ value: data.weight, date: new Date(data.date) })), '#weight-graph', '#0095b2'));
+
+				}
 
 			},
 
 			fetchCaloriesData(requestOpts: { headers: { [key: string]: string } }, date : string){
 
-				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/activities/calories/date/${date}/1m.json`, requestOpts)
-					.then(res => res.json())
-					.then((res : { 'activities-calories': [ { value : number, dateTime: string } ] }) => {
+				if(!this.dataCalories) {
 
-						// todo: check response for interesting data
+					fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/activities/calories/date/${date}/1m.json`, requestOpts)
+						.then(res => res.json())
+						.then((res) => {
 
-						this.renderD3(res['activities-calories'].map(data => ({ value: data.value, date: new Date(data.dateTime) })), '#calories-graph', '#f4a742');
+							this.dataCalories = res['activities-calories'];
 
-					});
+							storage.set({calories: this.dataCalories});
+
+							this.renderD3((this.dataCalories as [{ value : number, dateTime: string }]).map(data => ({ value: data.value, date: new Date(data.dateTime) })), '#calories-graph', '#f4a742');
+
+						});
+
+				} else {
+
+					setTimeout(() => this.renderD3((this.dataCalories as [{ value : number, dateTime: string }]).map(data => ({ value: data.value, date: new Date(data.dateTime) })), '#calories-graph', '#f4a742'));
+
+				}
 
 			},
 
@@ -280,23 +285,7 @@
 
 		h3{
 			font: 18px/22px Helvetica, Arial, sans-serif;
-			margin: 0 0 20px;
-
-			&.calories-title{
-				font: 200px/300px Helvetica, Arial, sans-serif;
-				color: #0095b2;
-			}
-
+			margin: 0 0 10px;
 		}
-
-		.weight{
-			float: left;
-			width: 70%;
-		}
-		.calories{
-			float: right;
-			width: 30%;
-		}
-
 	}
 </style>
