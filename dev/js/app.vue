@@ -154,7 +154,7 @@
 
 							storage.set({ weight: this.dataWeight});
 
-							this.renderD3((this.dataWeight as [{ weight : number, date: string }]).map(data => ({ value: data.weight, date: new Date(data.date) })), '#weight-graph', '#0095b2');
+							setTimeout(() => this.renderD3((this.dataWeight as [{ weight : number, date: string }]).map(data => ({ value: data.weight, date: new Date(data.date) })), '#weight-graph', '#0095b2'));
 
 						});
 
@@ -178,7 +178,7 @@
 
 							storage.set({calories: this.dataCalories});
 
-							this.renderD3((this.dataCalories as [{ value : number, dateTime: string }]).map(data => ({ value: data.value, date: new Date(data.dateTime) })), '#calories-graph', '#f4a742');
+							setTimeout(() => this.renderD3((this.dataCalories as [{ value : number, dateTime: string }]).map(data => ({ value: data.value, date: new Date(data.dateTime) })), '#calories-graph', '#f4a742'));
 
 						});
 
