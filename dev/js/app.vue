@@ -3,21 +3,15 @@
 		<header class="wrapper">
 			<h1>FITBIT MOTIVATOR</h1>
 			<a v-on:click="onLogout" href="#" v-if="dataSession">LOG OUT</a>
-			<a v-bind:href="loginUrl" v-else>LOG IN</a>
+			<a :href="loginUrl" v-else>LOG IN</a>
 		</header>
 		<main>
 			<section v-if="dataSession">
 				<h2 v-if="dataUser">Hello, {{dataUser.displayName}}!</h2>
-				<div v-if="dataWeight" class="wrapper">
-					<h3>Your weight changes:</h3>
-					<svg ref="dataWeight" id="weight-graph" height="0"></svg>
-				</div>
-				<div v-if="dataCalories" class="wrapper">
-					<h3>Your burned calories:</h3>
-					<svg id="calories-graph" height="0"></svg>
-				</div>
+				<chart v-if="dataWeight" :data="dataWeight" msg="your weight changes" color="#0095b2"></chart>
+				<chart v-if="dataCalories" :data="dataCalories" msg="your burned calories" color="#f4a742"></chart>
 			</section>
-			<h2 v-else class="greeting">Please <a v-bind:href="loginUrl" class="login-btn">login</a> with Fitbit account to use Motivator</h2>
+			<h2 v-else class="greeting">Please <a :href="loginUrl" class="login-btn">login</a> with Fitbit account to use Motivator</h2>
 		</main>
 	</section>
 </template>
@@ -25,7 +19,7 @@
 <script lang="ts">
 
 	import Vue from 'vue';
-	import * as d3 from 'd3';
+	import chart from './chart.vue';
 
 	import { checkHash, Storage } from './helpers.ts';
 	import config from './config.ts';
@@ -49,6 +43,10 @@
 				dataCalories: storage.get('calories'),
 			}
 
+		},
+
+		components : {
+			'chart': chart
 		},
 
 		created(){
@@ -110,15 +108,21 @@
 
 				const requestOpts = { headers: {'Authorization': `Bearer ${this.dataSession.access_token}`} };
 
-				let date : Date | string = new Date();
-
-				date = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`;
-
 				this.fetchUserData(requestOpts);
 
-				this.fetchWeightData(requestOpts, date);
+				if(!this.dataWeight) { this.fetchWeightData(requestOpts, 60, []); }
 
-				this.fetchCaloriesData(requestOpts, date);
+				if(!this.dataCalories) { this.fetchCaloriesData(requestOpts, 60, []); }
+
+			},
+
+			getFormattedDate(shift ?: number){
+
+				let date : Date | string = new Date();
+
+				if(shift) { date.setDate(date.getDate() - shift); }
+
+				return `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`;
 
 			},
 
@@ -142,89 +146,60 @@
 
 			},
 
-			fetchWeightData(requestOpts: { headers: { [key: string]: string } }, date : string){
+			fetchWeightData(requestOpts: { headers: { [key: string]: string } }, shift : number, response : { [key: string]: string }[]){
 
-				if(!this.dataWeight) {
+				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/${this.getFormattedDate(shift)}/30d.json`, requestOpts)
+					.then(res => res.json())
+					.then((res) => {
 
-					fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/${date}/1m.json`, requestOpts)
-						.then(res => res.json())
-						.then((res) => {
+						const batch = (res.weight as [{ [key: string]: string }])
+							.map(data => ({ value: data.weight, date: data.date }));
 
-							this.dataWeight = res.weight;
+						response = response.concat(batch);
 
-							storage.set({ weight: this.dataWeight});
+						if(shift <= 0){
 
-							setTimeout(() => this.renderD3((this.dataWeight as [{ weight : number, date: string }]).map(data => ({ value: data.weight, date: new Date(data.date) })), '#weight-graph', '#0095b2'));
+							this.dataWeight = response.splice(0, response.length - 1);
 
-						});
+							storage.set({weight: this.dataWeight});
 
-				} else {
+						} else {
 
-					setTimeout(() => this.renderD3((this.dataWeight as [{ weight : number, date: string }]).map(data => ({ value: data.weight, date: new Date(data.date) })), '#weight-graph', '#0095b2'));
+							shift = shift - 30;
 
-				}
+							this.fetchWeightData(requestOpts, shift , response);
 
+						}
+
+					});
 			},
 
-			fetchCaloriesData(requestOpts: { headers: { [key: string]: string } }, date : string){
+			fetchCaloriesData(requestOpts: { headers: { [key: string]: string } }, shift : number, response : { [key: string]: string }[]){
 
-				if(!this.dataCalories) {
+				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/activities/calories/date/${this.getFormattedDate(shift)}/30d.json`, requestOpts)
+					.then(res => res.json())
+					.then((res) => {
 
-					fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/activities/calories/date/${date}/1m.json`, requestOpts)
-						.then(res => res.json())
-						.then((res) => {
+						const batch = (res['activities-calories'] as [{ [key: string]: string }])
+							.map(data => ({ value: data.value, date: data.dateTime }));
 
-							this.dataCalories = res['activities-calories'];
+						response = response.concat(batch);
+
+						if(shift <= 0){
+
+							this.dataCalories = response.splice(0, response.length - 1);
 
 							storage.set({calories: this.dataCalories});
 
-							setTimeout(() => this.renderD3((this.dataCalories as [{ value : number, dateTime: string }]).map(data => ({ value: data.value, date: new Date(data.dateTime) })), '#calories-graph', '#f4a742'));
+						} else {
 
-						});
+							shift = shift - 30;
 
-				} else {
+							this.fetchCaloriesData(requestOpts, shift , response)
 
-					setTimeout(() => this.renderD3((this.dataCalories as [{ value : number, dateTime: string }]).map(data => ({ value: data.value, date: new Date(data.dateTime) })), '#calories-graph', '#f4a742'));
+						}
 
-				}
-
-			},
-
-			renderD3(data : { value : number, date: Date }[], svgSelector: string, lineColor: string) {
-
-				data = data.splice(0, data.length - 1); // do not consider today
-
-				const margin = 50;
-				const height = 300;
-				const width = ((document.querySelector(svgSelector) as HTMLElement).parentNode as HTMLElement).offsetWidth;
-
-				const svg = d3.select(svgSelector)
-					.attr('width', width)
-					.attr('height', height);
-
-				const x = d3.scaleTime().domain(d3.extent(data, d => d.date) as Date[]).range([margin, width - margin]);
-				const y = d3.scaleLinear().domain(d3.extent(data, d => d.value) as number[]).nice().range([height - margin, margin]);
-
-				svg.append('g')
-					.attr('transform', `translate(0,${height - margin})`)
-					.call(d3.axisBottom(x));
-
-				svg.append('g')
-					.attr('transform', `translate(${margin},0)`)
-					.call(d3.axisLeft(y));
-
-				const line = d3.line()
-					.curve(d3.curveBasis)
-					.x((d: { [key: string]: any }) => x(d.date))
-					.y((d: { [key: string]: any }) => y(d.value));
-
-				svg.append('path')
-					.datum(data)
-					.attr('fill', 'none')
-					.attr('stroke', lineColor)
-					.attr('stroke-width', 5)
-					.attr('d', line as any);
-
+					});
 			}
 		}
 	});
@@ -268,9 +243,6 @@
 		}
 
 	}
-	.hide{
-		display: none !important;
-	}
 	main{
 		text-align: center;
 		padding: 20px 0 0;
@@ -281,11 +253,6 @@
 
 			&.greeting{ margin-top: 40vh; }
 
-		}
-
-		h3{
-			font: 18px/22px Helvetica, Arial, sans-serif;
-			margin: 0 0 10px;
 		}
 	}
 </style>
