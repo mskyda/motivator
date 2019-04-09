@@ -24,7 +24,7 @@
 
 			renderD3() {
 
-				const data : { value : number, date: Date }[] = (this.$props.data as [{ value: number, date: string }]).map(data => ({ value: data.value, date: new Date(data.date) }));
+				const data : { value : number, date: Date }[] = (this.$props.data.splice(0, this.$props.data.length - 1) as [{ value: number, date: string }]).map(data => ({ value: data.value, date: new Date(data.date) }));
 				const width = ((this.$refs.svg as HTMLElement).parentNode as HTMLElement).offsetWidth;
 				const margin = 50;
 				const height = 300;

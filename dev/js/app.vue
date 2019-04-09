@@ -9,7 +9,7 @@
 			<section v-if="dataSession">
 				<h2 v-if="dataUser">Hello, {{dataUser.displayName}}!</h2>
 				<chart v-if="dataWeight" :data="dataWeight" msg="your weight changes" color="#0095b2"></chart>
-				<chart v-if="dataCalories" :data="dataCalories" msg="your burned calories" color="#f4a742"></chart>
+				<chart v-if="dataCalories && dataCaloriesBMR" :data="burnedCalories" msg="your burned calories" color="#f4a742"></chart>
 			</section>
 			<h2 v-else class="greeting">Please <a :href="loginUrl" class="login-btn">login</a> with Fitbit account to use Motivator</h2>
 		</main>
@@ -41,6 +41,7 @@
 				dataUser: storage.get('user'),
 				dataWeight: storage.get('weight'),
 				dataCalories: storage.get('calories'),
+				dataCaloriesBMR: storage.get('caloriesbmr'),
 			}
 
 		},
@@ -72,6 +73,25 @@
 				for(const key in data){ loginUrl += `${key}=${data[key]}&`; }
 
 				return loginUrl.substr(0, loginUrl.length - 1);
+
+			},
+
+			burnedCalories(){
+
+				const burnedCalories : { value: number, date: string }[] = [];
+
+				this.dataCalories.forEach((item : {
+					value: number,
+					date: string
+				}, i : number) => {
+
+					const caloriesDiff = item.value - this.dataCaloriesBMR[i].value;
+
+					if(caloriesDiff){ burnedCalories.push({ value: caloriesDiff, date: item.date }); }
+
+				});
+
+				return burnedCalories;
 
 			}
 
@@ -106,13 +126,38 @@
 
 				// todo: !!check all responses for interesting data!!
 
-				const requestOpts = { headers: {'Authorization': `Bearer ${this.dataSession.access_token}`} };
+				this.fetchUserData();
 
-				this.fetchUserData(requestOpts);
+				const propertiesToFetch = [
+					{
+						property: 'Weight',
+						url: `https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/`,
+						responseKey: 'weight',
+						value: 'weight',
+						date: 'date',
+						shiftDays: 60
+					},
+					{
+						property: 'Calories',
+						url: `https://api.fitbit.com/1/user/${this.dataSession.user_id}/activities/calories/date/`,
+						responseKey: 'activities-calories',
+						value: 'value',
+						date: 'dateTime',
+						shiftDays: 60
+					},
+					{
+						property: 'CaloriesBMR',
+						url: `https://api.fitbit.com/1/user/${this.dataSession.user_id}/activities/caloriesBMR/date/`,
+						responseKey: 'activities-caloriesBMR',
+						value: 'value',
+						date: 'dateTime',
+						shiftDays: 60
+					}
+				];
 
-				if(!this.dataWeight) { this.fetchWeightData(requestOpts, 60, []); }
+				propertiesToFetch.map(property => this.fetchUserProperty(property));
 
-				if(!this.dataCalories) { this.fetchCaloriesData(requestOpts, 60, []); }
+
 
 			},
 
@@ -126,76 +171,55 @@
 
 			},
 
-			fetchUserData(requestOpts : { headers: { [key: string]: string } }){
+			fetchUserData(){
 
-				if(!this.dataUser) {
+				if(this.dataUser) { return; }
 
-					fetch('https://api.fitbit.com/1/user/-/profile.json', requestOpts)
-						.then(res => res.json())
-						.then(res => {
-
-							if(res.errors){ this.clearAppState(); }
-
-							this.dataUser = res.user;
-
-							storage.set({ user: this.dataUser });
-
-						});
-
-				}
-
-			},
-
-			fetchWeightData(requestOpts: { headers: { [key: string]: string } }, shift : number, response : { [key: string]: string }[]){
-
-				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/body/log/weight/date/${this.getFormattedDate(shift)}/30d.json`, requestOpts)
+				fetch('https://api.fitbit.com/1/user/-/profile.json', { headers: {'Authorization': `Bearer ${this.dataSession.access_token}`} })
 					.then(res => res.json())
-					.then((res) => {
+					.then(res => {
 
-						const batch = (res.weight as [{ [key: string]: string }])
-							.map(data => ({ value: data.weight, date: data.date }));
+						if(res.errors){ this.clearAppState(); }
 
-						response = response.concat(batch);
+						this.dataUser = res.user;
 
-						if(shift <= 0){
-
-							this.dataWeight = response.splice(0, response.length - 1);
-
-							storage.set({weight: this.dataWeight});
-
-						} else {
-
-							shift = shift - 30;
-
-							this.fetchWeightData(requestOpts, shift , response);
-
-						}
+						storage.set({ user: this.dataUser });
 
 					});
+
 			},
 
-			fetchCaloriesData(requestOpts: { headers: { [key: string]: string } }, shift : number, response : { [key: string]: string }[]){
+			fetchUserProperty(settings : {
+				property: string,
+				url: string,
+				responseKey: string,
+				value: string,
+				date: string,
+				shiftDays: number }, result ?: { [key: string]: string }[]){
 
-				fetch(`https://api.fitbit.com/1/user/${this.dataSession.user_id}/activities/calories/date/${this.getFormattedDate(shift)}/30d.json`, requestOpts)
+				const propertyName = `data${settings.property}`;
+
+				if(this.$data[propertyName] && this.$data[propertyName].reverse()[0].date === this.getFormattedDate()){ return; } // todo: fetch only missing days, not 3 months
+
+				fetch(`${settings.url}${this.getFormattedDate(settings.shiftDays)}/30d.json`, { headers: {'Authorization': `Bearer ${this.dataSession.access_token}`} })
 					.then(res => res.json())
 					.then((res) => {
 
-						const batch = (res['activities-calories'] as [{ [key: string]: string }])
-							.map(data => ({ value: data.value, date: data.dateTime }));
+						const batch = (res[settings.responseKey] as [{ [key: string]: string }]).map(data => ({ value: data[settings.value], date: data[settings.date] }));
 
-						response = response.concat(batch);
+						result = result ? result.concat(batch) : [...batch];
 
-						if(shift <= 0){
+						if(settings.shiftDays <= 0){
 
-							this.dataCalories = response.splice(0, response.length - 1);
+							this.$data[propertyName]= result;
 
-							storage.set({calories: this.dataCalories});
+							storage.set({[settings.property.toLowerCase()]: this.$data[propertyName]});
 
 						} else {
 
-							shift = shift - 30;
+							settings.shiftDays -= 30;
 
-							this.fetchCaloriesData(requestOpts, shift , response)
+							this.fetchUserProperty(settings, result);
 
 						}
 
