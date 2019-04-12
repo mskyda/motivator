@@ -139,7 +139,7 @@
 						responseKey: 'weight',
 						value: 'weight',
 						date: 'date',
-						shiftDays: 60
+						shiftDays: 150
 					},
 					{
 						property: 'caloriesOut',
@@ -147,7 +147,7 @@
 						responseKey: 'activities-calories',
 						value: 'value',
 						date: 'dateTime',
-						shiftDays: 60
+						shiftDays: 150
 					},
 					{
 						property: 'caloriesIn',
@@ -155,7 +155,7 @@
 						responseKey: 'foods-log-caloriesIn',
 						value: 'value',
 						date: 'dateTime',
-						shiftDays: 60
+						shiftDays: 150
 					}
 				];
 

@@ -28,6 +28,8 @@
 
 				data.shift();
 
+				console.log(data);
+
 				const svg = d3.select(this.$refs.svg as HTMLElement)
 					.attr('width', width)
 					.attr('height', height);
@@ -44,7 +46,7 @@
 					.call(d3.axisLeft(y));
 
 				const line = d3.line()
-					.curve(d3.curveBasis)
+					// .curve(d3.curveCardinal.tension(1))
 					.x((d: { [key: string]: any }) => x(d.date))
 					.y((d: { [key: string]: any }) => y(d.value));
 
