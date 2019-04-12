@@ -1,8 +1,5 @@
 <template>
-	<div class="wrapper">
-		<h3>{{msg}}:</h3>
-		<svg ref="svg"></svg>
-	</div>
+	<svg ref="svg"></svg>
 </template>
 
 <script lang="ts">
@@ -24,17 +21,19 @@
 
 			renderD3() {
 
-				const data : { value : number, date: Date }[] = (this.$props.data.splice(0, this.$props.data.length - 1) as [{ value: number, date: string }]).map(data => ({ value: data.value, date: new Date(data.date) }));
+				const data : { value : number, date: Date }[] = (this.$props.data as [{ value: number, date: string }]).map(data => ({ value: data.value, date: new Date(data.date) }));
 				const width = ((this.$refs.svg as HTMLElement).parentNode as HTMLElement).offsetWidth;
 				const margin = 50;
 				const height = 300;
+
+				data.shift();
 
 				const svg = d3.select(this.$refs.svg as HTMLElement)
 					.attr('width', width)
 					.attr('height', height);
 
 				const x = d3.scaleTime().domain(d3.extent(data, d => d.date) as Date[]).range([margin, width - margin]);
-				const y = d3.scaleLinear().domain(d3.extent(data, d => d.value) as number[]).nice().range([height - margin, margin]);
+				const y = d3.scaleLinear().domain(d3.extent(data, d => d.value) as number[]).range([height - margin, margin]);
 
 				svg.append('g')
 					.attr('transform', `translate(0,${height - margin})`)
@@ -49,11 +48,13 @@
 					.x((d: { [key: string]: any }) => x(d.date))
 					.y((d: { [key: string]: any }) => y(d.value));
 
+				const randomHex = new Array(7).join('f').split('').map(() => Math.round(Math.random() * 15).toString(16)).join('');
+
 				svg.append('path')
 					.datum(data)
 					.attr('fill', 'none')
-					.attr('stroke', this.$props.color)
-					.attr('stroke-width', 5)
+					.attr('stroke', `#${randomHex}`)
+					.attr('stroke-width', 3)
 					.attr('d', line as any);
 
 			}
@@ -63,11 +64,3 @@
 	});
 
 </script>
-
-<style lang="scss">
-	h3{
-		font: 18px/22px Helvetica, Arial, sans-serif;
-		margin: 0 0 10px;
-		text-transform: capitalize;
-	}
-</style>
